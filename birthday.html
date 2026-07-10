@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Happy Birthday</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1b1024;
+    --plum: #2a1638;
+    --gold: #e8b34a;
+    --rose: #e85d6b;
+    --violet: #a685d1;
+    --cream: #f6ede1;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    height: 100%;
+    background: radial-gradient(ellipse at top, #3a1f4d 0%, var(--ink) 70%);
+    overflow: hidden;
+    font-family: 'Sora', sans-serif;
+  }
+  #canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .stage {
+    position: relative;
+    height: 100dvh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- Gift (pre-open state) ---- */
+  #gift {
+    position: relative;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    animation: float 3.2s ease-in-out infinite;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .box {
+    width: 130px;
+    height: 100px;
+    background: linear-gradient(155deg, var(--rose), #c73f52);
+    border-radius: 6px;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(232,93,107,0.35), inset 0 -6px 0 rgba(0,0,0,0.15);
+  }
+  .box::before {
+    content: '';
+    position: absolute;
+    top: -16px; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; height: 22px;
+    background: linear-gradient(155deg, #f0748a, var(--rose));
+    border-radius: 4px;
+  }
+  .ribbon-v {
+    position: absolute; top: -16px; bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    background: var(--gold);
+  }
+  .bow {
+    position: absolute;
+    top: -34px; left: 50%;
+    transform: translateX(-50%);
+    width: 46px; height: 26px;
+  }
+  .bow::before, .bow::after {
+    content: '';
+    position: absolute;
+    top: 0; width: 22px; height: 22px;
+    background: var(--gold);
+    border-radius: 50% 50% 50% 0;
+  }
+  .bow::before { left: 0; transform: rotate(-45deg); }
+  .bow::after { right: 0; transform: rotate(45deg) scaleX(-1); border-radius: 50% 50% 50% 0; }
+
+  .hint {
+    font-family: 'Sora', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--violet);
+    opacity: 0.85;
+  }
+
+  /* ---- Reveal (post-open state) ---- */
+  #reveal {
+    position: absolute;
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 32px;
+    max-width: 640px;
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(.2,1.4,.4,1);
+  }
+  #reveal.show {
+    display: flex;
+    opacity: 1;
+    transform: scale(1);
+  }
+  .eyebrow {
+    font-size: 13px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 18px;
+  }
+  .headline {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: clamp(2.4rem, 9vw, 4.2rem);
+    line-height: 1.05;
+    color: var(--cream);
+    margin-bottom: 22px;
+  }
+  .headline span {
+    color: var(--rose);
+    font-style: normal;
+    font-weight: 700;
+  }
+  .message {
+    font-size: clamp(1rem, 2.6vw, 1.2rem);
+    line-height: 1.7;
+    color: rgba(246,237,225,0.82);
+    font-weight: 300;
+    max-width: 480px;
+  }
+  .signoff {
+    margin-top: 28px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--violet);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="stage">
+  <div id="gift">
+    <div class="box">
+      <div class="ribbon-v"></div>
+      <div class="bow"></div>
+    </div>
+    <div class="hint">Tap the gift</div>
+  </div>
+
+  <div id="reveal">
+    <div class="eyebrow">A little something for you</div>
+    <h1 class="headline">Happy Birthday,<br><span id="nameSlot">Friend!</span>!</h1>
+    <p class="message" id="msgSlot">Wishing you a day as bright and wonderful as you are — and a year ahead full of good things.</p>
+    <div class="signoff" id="fromSlot"></div>
+  </div>
+</div>
+
+<script>
+  // ---- Read personalization from URL: ?name=Sarah&msg=Custom+message&from=Jace ----
+  const params = new URLSearchParams(window.location.search);
+  const name = params.get('name') || 'Friend!';
+  const msg = params.get('msg') || "Wishing you a day as bright and wonderful as you are — and a year ahead full of good things.";
+  const from = params.get('from');
+
+  document.getElementById('nameSlot').textContent = name;
+  document.getElementById('msgSlot').textContent = msg;
+  if (from) document.getElementById('fromSlot').textContent = '— ' + from;
+  document.title = 'Happy Birthday, ' + name + '!';
+
+  // ---- Confetti engine ----
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const colors = ['#e8b34a', '#e85d6b', '#a685d1', '#f6ede1', '#7fd8c4'];
+  let particles = [];
+
+  function burst(cx, cy, count = 140) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 4 + Math.random() * 9;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 3,
+        size: 5 + Math.random() * 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * 360,
+        vrot: (Math.random() - 0.5) * 12,
+        shape: Math.random() > 0.5 ? 'rect' : 'circle',
+        life: 1
+      });
+    }
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.vy += 0.14; // gravity
+      p.vx *= 0.99;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vrot;
+      p.life -= 0.006;
+
+      ctx.save();
+      ctx.globalAlpha = Math.max(p.life, 0);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      if (p.shape === 'rect') {
+        ctx.fillRect(-p.size/2, -p.size/3, p.size, p.size*0.6);
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size/2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+    particles = particles.filter(p => p.life > 0 && p.y < H + 50);
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  // gentle ambient sprinkle before opening
+  setInterval(() => {
+    if (Math.random() > 0.6) {
+      burst(Math.random() * W, -20, 4);
+    }
+  }, 500);
+
+  // ---- Open interaction ----
+  const gift = document.getElementById('gift');
+  const reveal = document.getElementById('reveal');
+  let opened = false;
+
+  gift.addEventListener('click', () => {
+    if (opened) return;
+    opened = true;
+
+    const rect = gift.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    burst(cx, cy, 220);
+    setTimeout(() => burst(W * 0.2, H * 0.3, 100), 150);
+    setTimeout(() => burst(W * 0.8, H * 0.3, 100), 300);
+
+    gift.style.opacity = '0';
+    gift.style.transform = 'scale(0.6)';
+
+    setTimeout(() => {
+      gift.style.display = 'none';
+      reveal.classList.add('show');
+    }, 400);
+  });
+</script>
+
+</body>
+</html>
