@@ -184,7 +184,7 @@
 <script>
   // ---- Read personalization from URL: ?name=Sarah&msg=Custom+message&from=Jace ----
   const params = new URLSearchParams(window.location.search);
-  const name = params.get('name') || 'Friend!';
+  const name = params.get('name') || 'Friend';
   const msg = params.get('msg') || "Wishing you a day as bright and wonderful as you are — and a year ahead full of good things.";
   const from = params.get('from');
 
